@@ -480,7 +480,7 @@ function isBirthdayNow() {
 function pad(n) { return String(n).padStart(2,'0'); }
 
 function startCountdownOrLaunch() {
-  if (isBirthdayNow()) {
+  if (!isBirthdayNow()) {
     launchBirthday();
     return;
   }
