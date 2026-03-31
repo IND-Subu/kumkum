@@ -756,7 +756,7 @@ body{
   ★ AUDIO PLACEHOLDER ★
   Uncomment + set src, then set USE_CUSTOM_AUDIO = true in JS config.
    -->
-  <audio id="bgAudio" src="faguna.mp3" loop preload="auto"></audio>
+  <audio id="bgAudio" src="faguna.mp3" loop preload="none"></audio>
 
 <script>
 // ═══════════════════════════════════════════════════
@@ -844,7 +844,7 @@ function tickCD(){
   $('cdMins').textContent=pad(m);  $('cdSecs').textContent=pad(s);
 }
 function startCD(){
-  if(isBirthday()){launchBirthday();return;}
+  if(!isBirthday()){launchBirthday();return;}
   initCsBg(); tickCD(); setInterval(tickCD,1000);
 }
 function launchBirthday(){
