@@ -844,7 +844,7 @@ function tickCD(){
   $('cdMins').textContent=pad(m);  $('cdSecs').textContent=pad(s);
 }
 function startCD(){
-  if(isBirthday()){launchBirthday();return;}
+  if(!isBirthday()){launchBirthday();return;}
   initCsBg(); tickCD(); setInterval(tickCD,1000);
 }
 function launchBirthday(){
