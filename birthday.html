@@ -830,7 +830,7 @@ function isBirthday(){
 }
 function nextBD(){
   const n=new Date(), bd=new Date(n.getFullYear(),BIRTHDAY.getMonth(),BIRTHDAY.getDate(),0,0,0,0);
-  if(!n>bd) bd.setFullYear(bd.getFullYear()+1);
+  if(n>bd) bd.setFullYear(bd.getFullYear()+1);
   return bd;
 }
 function pad(n){return String(n).padStart(2,'0');}
@@ -845,7 +845,7 @@ function tickCD(){
   $('cdMins').textContent=pad(m);  $('cdSecs').textContent=pad(s);
 }
 function startCD(){
-  if(isBirthday()){launchBirthday();return;}
+  if(!isBirthday()){launchBirthday();return;}
   initCsBg(); tickCD(); setInterval(tickCD,1000);
 }
 function launchBirthday(){
