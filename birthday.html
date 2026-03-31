@@ -755,31 +755,31 @@ body{
 <!--
   ★ AUDIO PLACEHOLDER ★
   Uncomment + set src, then set USE_CUSTOM_AUDIO = true in JS config.
-  <audio id="bgAudio" src="your-song.mp3" loop preload="auto"></audio>
--->
+   -->
+  <audio id="bgAudio" src="faguna.mp3" loop preload="auto"></audio>
 
 <script>
 // ═══════════════════════════════════════════════════
 // ★ CONFIG — edit these
 // ═══════════════════════════════════════════════════
 const BIRTHDAY = new Date('2009-04-01T00:00:00');
-const USE_CUSTOM_AUDIO = false;
+const USE_CUSTOM_AUDIO = true;
 
 // 11 photo slots — set each to a path or base64 string.
 // Leave as '' to show the placeholder.
 // Example: P[0] = 'photos/her1.jpg'  or  P[0] = 'data:image/jpeg;base64,...'
 const P = [
-  '', // P1  — hero circle (scene 1 center + scene 4 top)
-  '', // P2  — scene 1 top-strip left  + scene 5 mosaic
-  '', // P3  — scene 1 top-strip right + scene 5 mosaic
-  '', // P4  — scene 1 bottom-strip left
-  '', // P5  — scene 1 bottom-strip right + scene 5 wide
-  '', // P6  — scene 2 left float
-  '', // P7  — scene 2 right float
-  '', // P8  — scene 3 polaroid + scene 5 mosaic
-  '', // P9  — scene 3 polaroid + scene 5 mosaic
-  '', // P10 — scene 3 polaroid + scene 5 wide
-  '', // P11 — scene 4 top-strip right
+  'photos/pic1.jpg', // P1  — hero circle (scene 1 center + scene 4 top)
+  'photos/pic2.jpg', // P2  — scene 1 top-strip left  + scene 5 mosaic
+  'photos/pic3.jpg', // P3  — scene 1 top-strip right + scene 5 mosaic
+  'photos/pic4.jpg', // P4  — scene 1 bottom-strip left
+  'photos/pic5.jpg', // P5  — scene 1 bottom-strip right + scene 5 wide
+  'photos/pic6.jpg', // P6  — scene 2 left float
+  'photos/pic7.jpg', // P7  — scene 2 right float
+  'photos/pic8.jpg', // P8  — scene 3 polaroid + scene 5 mosaic
+  'photos/pic9.jpg', // P9  — scene 3 polaroid + scene 5 mosaic
+  'photos/pic10.jpg', // P10 — scene 3 polaroid + scene 5 wide
+  'photos/pic11.jpg', // P11 — scene 4 top-strip right
 ];
 
 // ── photo injection map: [elementId, photoIndex] ──
@@ -844,7 +844,7 @@ function tickCD(){
   $('cdMins').textContent=pad(m);  $('cdSecs').textContent=pad(s);
 }
 function startCD(){
-  if(isBirthday()){launchBirthday();return;}
+  if(!isBirthday()){launchBirthday();return;}
   initCsBg(); tickCD(); setInterval(tickCD,1000);
 }
 function launchBirthday(){
