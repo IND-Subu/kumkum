@@ -420,28 +420,29 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Quicksand',sans-se
   2. Uncomment the <audio> tag below
   3. Set src="your-song.mp3"
   4. Set USE_CUSTOM_AUDIO = true in the script below
+
+  <audio id="bgAudio" src="your-song.mp3" loop preload="auto"></audio>
 -->
-  <audio id="bgAudio" src="faguna.mp3" loop preload="auto"></audio>
 
 <script>
 // ══════════════════════════════════════════════
 // ★ CONFIGURATION — edit these values
 // ══════════════════════════════════════════════
-const HER_NAME      = 'Kumkum';       // ← replace
+const HER_NAME      = '[Her Name]';       // ← replace
 const BIRTHDAY      = new Date('2009-04-01T00:00:00'); // DOB
-const USE_CUSTOM_AUDIO = true;           // ← set true if using MP3
+const USE_CUSTOM_AUDIO = false;           // ← set true if using MP3
 
 // Photo src references — set these to your image paths or base64 strings
 // Example: PHOTOS[0] = 'photos/pic1.jpg';
 // Example: PHOTOS[0] = 'data:image/jpeg;base64,...';
 const PHOTOS = [
-  'photos/pic1.jpg',  // photo1 — scene 1, circular portrait
-  'photos/pic2.jpg',  // photo2 — scene 2, side portrait
-  'photos/pic3.jpg',  // photo3 — scene 4, above cake
-  'photos/pic4.jpg',  // photo4 — scene 5, tall mosaic
-  'photos/pic5.jpg',  // photo5 — scene 5, square
-  'photos/pic1.jpg',  // photo6 — scene 5, square
-  'photos/pic2.jpg',  // photo7 — scene 5, wide
+  '',  // photo1 — scene 1, circular portrait
+  '',  // photo2 — scene 2, side portrait
+  '',  // photo3 — scene 4, above cake
+  '',  // photo4 — scene 5, tall mosaic
+  '',  // photo5 — scene 5, square
+  '',  // photo6 — scene 5, square
+  '',  // photo7 — scene 5, wide
 ];
 
 // ══════════════════════════════════════════════
@@ -479,7 +480,7 @@ function isBirthdayNow() {
 function pad(n) { return String(n).padStart(2,'0'); }
 
 function startCountdownOrLaunch() {
-  if (!isBirthdayNow()) {
+  if (isBirthdayNow()) {
     launchBirthday();
     return;
   }
@@ -540,83 +541,103 @@ function onEnter(n) {
 }
 
 // ══════════════════════════════════════════════
-// MUSIC  — works on iOS/Android + desktop
+// MUSIC
+// Key insight from debugging: on mobile Chrome, a.play() works when called
+// directly in the console because it runs synchronously in a user-gesture
+// context. Any async gap (.then, setTimeout, await) kills the gesture token.
+// Solution: call EVERYTHING synchronously inside the touchstart handler.
+// AudioContext.resume() returns a Promise but the audio starts immediately
+// on most mobile browsers even before it resolves — we don't wait for it.
 // ══════════════════════════════════════════════
 let audioCtx = null, musicStarted = false;
 
 function unlockAndStart() {
-  // iOS Safari requires AudioContext to be created AND resumed inside a
-  // direct user-gesture handler. We also need to play+pause a silent buffer
-  // to fully unlock the audio pipeline on mobile.
   if (musicStarted) return;
   musicStarted = true;
 
+  // ── Custom MP3 path ──
+  // <audio> .play() MUST be called synchronously here, zero awaiting.
   if (USE_CUSTOM_AUDIO) {
     const a = document.getElementById('bgAudio');
     if (a) {
       a.volume = 0.55;
-      // Mobile needs the element to be "touched" inside the gesture
-      a.play().catch(() => {});
+      a.play();                          // synchronous call — no .catch, no .then
     }
-    // Also boot the Web Audio context for sparkle sounds
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
-    resumeCtx();
+    // Still boot Web Audio for sparkle tones (doesn't need to play immediately)
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume();                 // fire-and-forget, no await
+    } catch(e) {}
     return;
   }
 
+  // ── Web Audio generative melody path ──
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Play a silent one-frame buffer to unlock on iOS
-    const buf = audioCtx.createBuffer(1, 1, 22050);
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
-    resumeCtx();
+
+    // Synchronously play a silent buffer — this is the mobile unlock gesture.
+    // Must happen in the SAME call stack as the user event.
+    const silentBuf = audioCtx.createBuffer(1, 1, 22050);
+    const silentSrc = audioCtx.createBufferSource();
+    silentSrc.buffer = silentBuf;
+    silentSrc.connect(audioCtx.destination);
+    silentSrc.start(0);                  // synchronous — unlocks audio on iOS
+
+    // resume() is async but audio is already unlocked by silentSrc.start().
+    // We call resume() and ignore the promise; melody starts via setTimeout
+    // which is fine because the unlock already happened synchronously above.
+    audioCtx.resume();
+
+    // Schedule melody start slightly after — context is already unlocked
+    setTimeout(() => { playPad(); playMelody(); }, 50);
   } catch(e) {}
 }
 
-function resumeCtx() {
-  if (!audioCtx) return;
-  const doPlay = () => { playPad(); setTimeout(playMelody, 900); };
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume().then(doPlay).catch(() => {});
-  } else {
-    doPlay();
-  }
-}
-
 function playPad() {
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  if (!audioCtx) return;
   [261.6, 329.6, 392, 523.25].forEach(f => {
     const o=audioCtx.createOscillator(), g=audioCtx.createGain(), fl=audioCtx.createBiquadFilter();
     o.type='sine'; o.frequency.value=f; fl.type='lowpass'; fl.frequency.value=700;
-    g.gain.setValueAtTime(0,audioCtx.currentTime); g.gain.linearRampToValueAtTime(0.03,audioCtx.currentTime+4);
+    g.gain.setValueAtTime(0, audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 4);
     o.connect(fl); fl.connect(g); g.connect(audioCtx.destination); o.start();
   });
 }
-function playNote(freq,start,dur,vol=0.14){
-  if(!audioCtx || audioCtx.state !== 'running') return;
-  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+
+function playNote(freq, start, dur, vol=0.14) {
+  if (!audioCtx) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
   o.type='triangle'; o.frequency.value=freq;
-  g.gain.setValueAtTime(0,audioCtx.currentTime+start);
-  g.gain.linearRampToValueAtTime(vol,audioCtx.currentTime+start+0.04);
-  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+start+dur);
+  g.gain.setValueAtTime(0, audioCtx.currentTime+start);
+  g.gain.linearRampToValueAtTime(vol, audioCtx.currentTime+start+0.04);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+start+dur);
   o.connect(g); g.connect(audioCtx.destination);
-  o.start(audioCtx.currentTime+start); o.stop(audioCtx.currentTime+start+dur+0.1);
-}
-function playMelody(){
-  if(!audioCtx || !musicStarted) return;
-  const N=[[261.6,0,.4],[261.6,.45,.2],[293.7,.7,.6],[261.6,1.4,.6],[349.2,2.1,.6],[329.6,2.8,1],[261.6,4,.4],[261.6,4.45,.2],[293.7,4.7,.6],[261.6,5.4,.6],[392,6.1,.6],[349.2,6.8,1],[261.6,8,.4],[261.6,8.45,.2],[523.3,8.7,.6],[440,9.4,.6],[349.2,10.1,.4],[329.6,10.6,.4],[293.7,11.1,.8],[466.2,12.1,.4],[466.2,12.55,.2],[440,12.8,.6],[349.2,13.5,.6],[392,14.2,.6],[349.2,14.9,1.2]];
-  N.forEach(n=>playNote(n[0],n[1],n[2],.13));
-  setTimeout(()=>{ if(musicStarted) playMelody(); },17500);
-}
-function playSparkle(){
-  if(!audioCtx || audioCtx.state !== 'running') return;
-  [880,1100,1320,1760].forEach((f,i)=>playNote(f,i*.05,.28,.055));
+  o.start(audioCtx.currentTime+start);
+  o.stop(audioCtx.currentTime+start+dur+0.1);
 }
 
-// Fire on FIRST touch/click — both events needed for cross-platform coverage
-document.addEventListener('touchstart', unlockAndStart, {once:true, passive:true});
-document.addEventListener('click',      unlockAndStart, {once:true});
+function playMelody() {
+  if (!audioCtx || !musicStarted) return;
+  const N=[
+    [261.6,0,.4],[261.6,.45,.2],[293.7,.7,.6],[261.6,1.4,.6],[349.2,2.1,.6],[329.6,2.8,1],
+    [261.6,4,.4],[261.6,4.45,.2],[293.7,4.7,.6],[261.6,5.4,.6],[392,6.1,.6],[349.2,6.8,1],
+    [261.6,8,.4],[261.6,8.45,.2],[523.3,8.7,.6],[440,9.4,.6],[349.2,10.1,.4],[329.6,10.6,.4],[293.7,11.1,.8],
+    [466.2,12.1,.4],[466.2,12.55,.2],[440,12.8,.6],[349.2,13.5,.6],[392,14.2,.6],[349.2,14.9,1.2]
+  ];
+  N.forEach(n => playNote(n[0], n[1], n[2], .13));
+  setTimeout(() => { if (musicStarted) playMelody(); }, 17500);
+}
+
+function playSparkle() {
+  if (!audioCtx) return;
+  [880,1100,1320,1760].forEach((f,i) => playNote(f, i*.05, .28, .055));
+}
+
+// touchstart fires before click and is the earliest possible gesture event.
+// Using capture:true so it fires even if a child element stops propagation.
+// passive:false so we CAN call synchronous audio APIs inside it.
+document.addEventListener('touchstart', unlockAndStart, {once:true, passive:false, capture:true});
+document.addEventListener('click',      unlockAndStart, {once:true, capture:true});
 
 // ══════════════════════════════════════════════
 // CURSOR
